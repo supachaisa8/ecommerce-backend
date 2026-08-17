@@ -1,5 +1,4 @@
 const db = require('../config/db');
-
 const OrderModel = {
   // สร้างออเดอร์พร้อมตัดสต็อกโดยใช้ Transaction
   createOrder: async (items) => {
