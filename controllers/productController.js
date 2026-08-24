@@ -4,7 +4,7 @@ const productController = {
   // GET: /api/products
   getProducts: async (req, res, next) => {
     try {
-      const { page, limit, search, sort, minPrice, maxPrice } = req.query;
+      const { page, limit, search, sort, minPrice, maxPrice, categoryId, tagId } = req.query;
 
       const result = await ProductModel.findAll({
         page,
@@ -12,7 +12,9 @@ const productController = {
         search,
         sort,
         minPrice,
-        maxPrice
+        maxPrice,
+        categoryId,
+        tagId
       });
 
       // console.log(undefinedVariable.something);
@@ -59,7 +61,7 @@ const productController = {
 
   // POST: /api/products
   createProduct: async (req, res) => {
-    const { name, price, stock } = req.body;
+    const { name, price, stock, categoryId, tagIds } = req.body;
 
     if (!name || price === undefined || stock === undefined) {
       return res.status(400).json({
@@ -69,7 +71,13 @@ const productController = {
     }
 
     try {
-      const newProduct = await ProductModel.create({ name, price, stock });
+      const newProduct = await ProductModel.create({ 
+        name, 
+        price, 
+        stock, 
+        categoryId: categoryId || null,
+        tagIds: tagIds || []
+      });
       res.status(201).json({
         success: true,
         message: 'เพิ่มสินค้าสำเร็จ',
@@ -87,7 +95,7 @@ const productController = {
   // PUT: /api/products/:id
   updateProduct: async (req, res) => {
     const { id } = req.params;
-    const { name, price, stock } = req.body;
+    const { name, price, stock, categoryId, tagIds } = req.body;
 
     try {
       const existingProduct = await ProductModel.findById(id);
@@ -102,11 +110,18 @@ const productController = {
       const updatedName = name !== undefined ? name : existingProduct.name;
       const updatedPrice = price !== undefined ? price : existingProduct.price;
       const updatedStock = stock !== undefined ? stock : existingProduct.stock;
+      const updatedCategoryId = categoryId !== undefined ? categoryId : existingProduct.category_id;
+
+      // ถ้าไม่มีการส่ง tagIds มา ให้ใช้ tagIds เดิมของสินค้านั้น
+      const existingTagIds = existingProduct.tags ? existingProduct.tags.map(t => t.id) : [];
+      const updatedTagIds = tagIds !== undefined ? tagIds : existingTagIds;
 
       const updatedProduct = await ProductModel.update(id, {
         name: updatedName,
         price: updatedPrice,
-        stock: updatedStock
+        stock: updatedStock,
+        categoryId: updatedCategoryId,
+        tagIds: updatedTagIds
       });
 
       res.status(200).json({

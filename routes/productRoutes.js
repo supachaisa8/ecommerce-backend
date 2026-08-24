@@ -12,9 +12,4 @@ router.post('/', authenticate, authorize('admin'), productController.createProdu
 router.put('/:id', authenticate, authorize('admin'), productController.updateProduct);
 router.delete('/:id', authenticate, authorize('admin'), productController.deleteProduct);
 
-// ใส่ validateProduct ก่อนเข้า Controller
-router.post('/', validateProduct, productController.createProduct);
-router.put('/:id', validateProduct, productController.updateProduct);
-router.delete('/:id', productController.deleteProduct);
-
 module.exports = router;

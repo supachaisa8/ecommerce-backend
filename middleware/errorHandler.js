@@ -7,16 +7,25 @@ const notFoundHandler = (req, res, next) => {
 
 // Global Error Handler สำหรับจับ Exception ทั้งหมด (500)
 const errorHandler = (err, req, res, next) => {
-  const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
-  
+  let statusCode = res.statusCode === 200 ? 500 : res.statusCode;
+  let message = err.message || 'เกิดข้อผิดพลาดภายในระบบ';
+
+  // ดักจับ PostgreSQL Error Code: 23505 (Unique Constraint Violation)
+  if (err.code === '23505') {
+    return res.status(400).json({
+      success: false,
+      message: 'ชื่อหมวดหมู่นี้มีอยู่ในระบบแล้ว'
+    });
+  }
+
   console.error(`[Error Log] ${err.stack}`);
 
-  res.status(statusCode).json({
-    success: false,
-    message: err.message || 'เกิดข้อผิดพลาดภายในระบบ',
-    // ใน production จะซ่อน stack trace เพื่อความปลอดภัย
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
-  });
-};
+    res.status(statusCode).json({
+      success: false,
+      message: err.message || 'เกิดข้อผิดพลาดภายในระบบ',
+      // ใน production จะซ่อน stack trace เพื่อความปลอดภัย
+      ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+    });
+  };
 
-module.exports = { notFoundHandler, errorHandler };
+  module.exports = { notFoundHandler, errorHandler };
