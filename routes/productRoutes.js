@@ -8,7 +8,7 @@ router.get('/', productController.getProducts);
 router.get('/:id', productController.getProductById);
 
 // เฉพาะ admin เท่านั้นที่ เพิ่ม/แก้ไข/ลบ สินค้าได้
-router.post('/', authenticate, authorize('admin'), productController.createProduct);
+router.post('/', authenticate, authorize('admin'),validateProduct, productController.createProduct);
 router.put('/:id', authenticate, authorize('admin'), productController.updateProduct);
 router.delete('/:id', authenticate, authorize('admin'), productController.deleteProduct);
 

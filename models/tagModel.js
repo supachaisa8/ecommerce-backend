@@ -33,12 +33,30 @@ const TagModel = {
     },
 
     delete: async (id) => {
-        const result = await db.query(
+        const client = await db.connect();
+        try {
+            await client.query('BEGIN');
 
-            'DELETE FROM tags WHERE id = $1 RETURNING *',
-            [id]
-        );
-        return result.rows[0];
+            // 1. ลบการผูก Tag ในตารางกลาง (product_tags) ก่อน
+            await client.query(
+                'DELETE FROM product_tags WHERE tag_id = $1',
+                [id]
+            );
+
+            // 2. ลบข้อมูล Tag ออกจากตารางหลัก (tags)
+            const result = await client.query(
+                'DELETE FROM tags WHERE id = $1 RETURNING *',
+                [id]
+            );
+
+            await client.query('COMMIT');
+            return result.rows[0];
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
+        }
     },
 
     // ผูก Tags หลายตัวเข้ากับ Product เดียว

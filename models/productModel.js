@@ -71,7 +71,7 @@ const ProductModel = {
     // กรองตาม Tag
     if (tagId) {
       queryConditions.push(`pt.tag_id = $${paramIndex}`);
-      queryParams.push(parseInt(categoryId, 10)); // แปลงเป็น Int
+      queryParams.push(parseInt(tagId, 10)); // แปลงเป็น Int
       paramIndex++
     }
 

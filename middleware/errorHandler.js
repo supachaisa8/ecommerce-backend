@@ -12,9 +12,20 @@ const errorHandler = (err, req, res, next) => {
 
   // ดักจับ PostgreSQL Error Code: 23505 (Unique Constraint Violation)
   if (err.code === '23505') {
+    let customMessage = 'ข้อมูลนี้มีอยู่ในระบบแล้ว';
+
+    // เช็กชื่อตารางจาก err.table
+    if (err.table === 'categories') {
+      customMessage = 'ชื่อหมวดหมู่นี้มีอยู่ในระบบแล้ว'
+    } else if (err.table === 'tags') {
+      customMessage = 'ชื่อ Tag นี้มีอยู่ในระบบแล้ว'
+    } else if (err.table === 'users') {
+      customMessage = 'อีเมลนี้ถูกใช้งานในระบบแล้ว'
+    }
+
     return res.status(400).json({
       success: false,
-      message: 'ชื่อหมวดหมู่นี้มีอยู่ในระบบแล้ว'
+      message: customMessage
     });
   }
 

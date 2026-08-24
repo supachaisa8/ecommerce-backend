@@ -25,16 +25,11 @@ const productController = {
       })
     } catch (error) {
       next(error);
-      console.error('Error fetching products:', error);
-      res.status(500).json({
-        success: false,
-        message: 'เกิดข้อผิดพลาดในการดึงข้อมูลสินค้า'
-      });
     }
   },
 
   // GET: /api/products/:id
-  getProductById: async (req, res) => {
+  getProductById: async (req, res, next) => {
     const { id } = req.params;
     try {
       const product = await ProductModel.findById(id);
@@ -51,16 +46,12 @@ const productController = {
         data: product
       });
     } catch (error) {
-      console.error('Error fetching product:', error);
-      res.status(500).json({
-        success: false,
-        message: 'เกิดข้อผิดพลาดในการดึงข้อมูลสินค้า'
-      });
+      next(error);
     }
   },
 
   // POST: /api/products
-  createProduct: async (req, res) => {
+  createProduct: async (req, res, next) => {
     const { name, price, stock, categoryId, tagIds } = req.body;
 
     if (!name || price === undefined || stock === undefined) {
@@ -84,16 +75,12 @@ const productController = {
         data: newProduct
       });
     } catch (error) {
-      console.error('Error creating product:', error);
-      res.status(500).json({
-        success: false,
-        message: 'เกิดข้อผิดพลาดในการเพิ่มสินค้า'
-      });
+      next(error);
     }
   },
 
   // PUT: /api/products/:id
-  updateProduct: async (req, res) => {
+  updateProduct: async (req, res, next) => {
     const { id } = req.params;
     const { name, price, stock, categoryId, tagIds } = req.body;
 
@@ -130,16 +117,12 @@ const productController = {
         data: updatedProduct
       });
     } catch (error) {
-      console.error('Error updating product:', error);
-      res.status(500).json({
-        success: false,
-        message: 'เกิดข้อผิดพลาดในการแก้ไขข้อมูลสินค้า'
-      });
+      next(error);
     }
   },
 
   // DELETE: /api/products/:id
-  deleteProduct: async (req, res) => {
+  deleteProduct: async (req, res, next) => {
     const { id } = req.params;
 
     try {
@@ -157,11 +140,7 @@ const productController = {
         message: 'ลบสินค้าสำเร็จ'
       });
     } catch (error) {
-      console.error('Error deleting product:', error);
-      res.status(500).json({
-        success: false,
-        message: 'เกิดข้อผิดพลาดในการลบสินค้า'
-      });
+      next(error);
     }
   }
 };

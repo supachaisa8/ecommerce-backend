@@ -17,7 +17,7 @@ const categoryController = {
         try {
             const { name } = req.body;
             if (!name) {
-                return restatus(400).json({
+                return res.status(400).json({
                     success: false,
                     message: 'กรุณากรอกชื่อหมวดหมู่'
                 });
