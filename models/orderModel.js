@@ -15,39 +15,39 @@ const OrderModel = {
 
       // 3. ตรวจสอบสินค้าและสต็อกทีละรายการ
       for (const item of items) {
-        const { productId, quantity } = item;
+        const { variantId, quantity } = item;
 
         // ดึงข้อมูลสินค้าล่าสุด และ Lock Row ไว้ชั่วคราว (FOR UPDATE) ป้องกัน Race Condition
-        const productRes = await client.query(
-          'SELECT price, stock, locked_stock FROM products WHERE id = $1 FOR UPDATE',
-          [productId]
+        const variantRes = await client.query(
+          'SELECT price, stock, locked_stock FROM product_variants WHERE id = $1 FOR UPDATE',
+          [variantId]
         );
 
-        if (productRes.rows.length === 0) {
-          throw new Error(`ไม่พบสินค้ารหัส ${productId}`);
+        if (variantRes.rows.length === 0) {
+          throw new Error(`ไม่พบสินค้ารหัส ${variantId}`);
         }
 
-        const product = productRes.rows[0];
-        const currentLocked = product.locked_stock || 0;
-        const availableStock = product.stock - currentLocked; // สต็อกที่ขายได้จริง
+        const variant = variantRes.rows[0];
+        const currentLocked = variant.locked_stock || 0;
+        const availableStock = variant.stock - currentLocked; // สต็อกที่ขายได้จริง
 
         if (availableStock < quantity) {
-          throw new Error(`สินค้า รหัส ${productId} ไม่เพียงพอ (คงเหลือพร้อมขาย ${availableStock} ชิ้น)`);
+          throw new Error(`สินค้า รหัส ${variantId} ไม่เพียงพอ (คงเหลือพร้อมขาย ${availableStock} ชิ้น)`);
         }
 
-        const itemTotal = parseFloat(product.price) * quantity;
+        const itemTotal = parseFloat(variant.price) * quantity;
         totalAmount += itemTotal;
 
         orderItemsToInsert.push({
-          productId,
+          variantId,
           quantity,
-          price: product.price
+          price: variant.price
         });
 
         // 4. ตัดสต็อกสินค้า
         await client.query(
-          'UPDATE products SET locked_stock = locked_stock + $1 WHERE id = $2',
-          [quantity, productId]
+          'UPDATE product_variants SET locked_stock = locked_stock + $1 WHERE id = $2', 
+          [quantity, variantId]
         );
       }
 
@@ -90,14 +90,14 @@ const OrderModel = {
       await client.query('BEGIN');
 
       const orderRes = await client.query(
-        'SELECT status FROM orders WHERE id = $1 FOR UPDATE', 
+        'SELECT status FROM orders WHERE id = $1 FOR UPDATE',
         [orderId]);
       if (!orderRes.rows[0] || orderRes.rows[0].status !== 'PENDING') {
         throw new Error('ออเดอร์นี้ไม่สามารถชำระเงินได้ (อาจถูกยกเลิกหรือจ่ายแล้ว)');
       }
 
       const itemsRes = await client.query('SELECT product_id, quantity FROM order_items WHERE order_id = $1', [orderId]);
-    
+
       for (const item of itemsRes.rows) {
         // ตัด stock จริงออก และลด locked_stock ลง
         await client.query(
@@ -143,7 +143,7 @@ const OrderModel = {
         for (const item of items.rows) {
           // คืนสต็อกที่ล็อกไว้
           await client.query(
-'UPDATE products SET locked_stock = GREATEST(0, locked_stock - $1) WHERE id = $2',            [item.quantity, item.product_id]
+            'UPDATE products SET locked_stock = GREATEST(0, locked_stock - $1) WHERE id = $2', [item.quantity, item.product_id]
           );
         }
 

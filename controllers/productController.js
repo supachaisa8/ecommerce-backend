@@ -4,7 +4,7 @@ const productController = {
   // GET: /api/products
   getProducts: async (req, res, next) => {
     try {
-      const { page, limit, search, sort, minPrice, maxPrice, categoryId, tagId } = req.query;
+      const { page, limit, search, sort, minPrice, maxPrice, categoryId, tagId, variants } = req.query;
 
       const result = await ProductModel.findAll({
         page,
@@ -14,7 +14,8 @@ const productController = {
         minPrice,
         maxPrice,
         categoryId,
-        tagId
+        tagId,
+        variants
       });
 
       // console.log(undefinedVariable.something);
@@ -52,23 +53,25 @@ const productController = {
 
   // POST: /api/products
   createProduct: async (req, res, next) => {
-    const { name, price, stock, categoryId, tagIds } = req.body;
-
-    if (!name || price === undefined || stock === undefined) {
-      return res.status(400).json({
-        success: false,
-        message: 'กรุณากรอกข้อมูล name, price และ stock ให้ครบถ้วน'
-      });
-    }
-
     try {
-      const newProduct = await ProductModel.create({ 
-        name, 
-        price, 
-        stock, 
-        categoryId: categoryId || null,
-        tagIds: tagIds || []
+      const { name, price, stock, categoryId, tagIds, variants } = req.body;
+
+      if (!name || price === undefined || stock === undefined) {
+        return res.status(400).json({
+          success: false,
+          message: 'กรุณากรอกข้อมูล name, price และ stock ให้ครบถ้วน'
+        });
+      }
+
+      const newProduct = await ProductModel.create({
+        name,
+        price: parseFloat(price),
+      stock: parseInt(stock, 10),
+      categoryId: categoryId ? parseInt(categoryId, 10) : null,
+      tagIds: tagIds || [],
+      variants: variants || [] 
       });
+      
       res.status(201).json({
         success: true,
         message: 'เพิ่มสินค้าสำเร็จ',

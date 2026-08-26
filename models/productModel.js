@@ -95,11 +95,25 @@ const ProductModel = {
           json_agg(
             DISTINCT jsonb_build_object('id', t.id, 'name', t.name)
           ) FILTER (WHERE t.id IS NOT NULL), '[]'
-        ) AS tags
+        ) AS tags,
+        COALESCE(
+          json_agg(
+            DISTINCT jsonb_build_object(
+              'id', v.id, 
+              'sku', v.sku, 
+              'size', v.size, 
+              'color', v.color, 
+              'price', v.price, 
+              'stock', v.stock,
+              'locked_stock', v.locked_stock
+            )
+          ) FILTER (WHERE v.id IS NOT NULL), '[]'
+        ) AS variants
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
       LEFT JOIN product_tags pt ON p.id = pt.product_id
       LEFT JOIN tags t ON pt.tag_id = t.id
+      LEFT JOIN product_variants v ON p.id = v.product_id
       ${whereClause}
       GROUP BY p.id, c.name
       ${orderByClause}
@@ -136,11 +150,25 @@ const ProductModel = {
           json_agg(
             DISTINCT jsonb_build_object('id', t.id, 'name', t.name)
           ) FILTER (WHERE t.id IS NOT NULL), '[]'
-        ) AS tags
+        ) AS tags,
+        COALESCE(
+          json_agg(
+            DISTINCT jsonb_build_object(
+              'id', v.id, 
+              'sku', v.sku, 
+              'size', v.size, 
+              'color', v.color, 
+              'price', v.price, 
+              'stock', v.stock,
+              'locked_stock', v.locked_stock
+            )
+          ) FILTER (WHERE v.id IS NOT NULL), '[]'
+        ) AS variants
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
       LEFT JOIN product_tags pt ON p.id = pt.product_id
       LEFT JOIN tags t ON pt.tag_id = t.id
+      LEFT JOIN product_variants v ON p.id = v.product_id
       WHERE p.id = $1
       GROUP BY p.id, c.name
     `;
@@ -149,7 +177,7 @@ const ProductModel = {
   },
 
   // 3. เพิ่มสินค้าใหม่ + ใส่ category_id และผูก tagIds (ใช้ Transaction)
-  create: async ({ name, price, stock, categoryId = null, tagIds = [] }) => {
+  create: async ({ name, price, stock, categoryId = null, tagIds = [], variants = [] }) => {
     const client = await db.connect();
     try {
       await client.query('BEGIN');
@@ -162,6 +190,18 @@ const ProductModel = {
         [name, price, stock, categoryId]
       );
       const product = productRes.rows[0];
+
+      // Insert Product Variants 
+      if (variants && variants.length > 0) {
+        for (const v of variants) {
+          await client.query(
+            `INSERT INTO product_variants 
+              (product_id, sku, size, color, price, stock)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+            [product.id, v.sku, v.size || null, v.color || null, v.price, v.stock]
+          );
+        }
+      }
 
       // Insert product_tags
       if (tagIds && tagIds.length > 0) {
@@ -184,7 +224,7 @@ const ProductModel = {
   },
 
   // 4. แก้ไขข้อมูลสินค้า
-  update: async (id, { name, price, stock, categoryId = null, tagIds = [] }) => {
+  update: async (id, { name, price, stock, categoryId = null, tagIds = [], variants }) => {
     const client = await db.connect();
     try {
       await client.query('BEGIN');
@@ -198,6 +238,23 @@ const ProductModel = {
         [name, price, stock, categoryId, id]
       );
       const product = productRes.rows[0];
+
+      // 2. จัดการ variants (ถ้ามีการส่ง variants มาใน request)
+      if (variants !== undefined) {
+        // ลบ variants เดิมออกก่อน
+        await client.query('DELETE FROM product_variants WHERE product_id = $1', [id]);
+
+        // เพิ่ม variants ชุดใหม่เข้าไป
+        if (variants.length > 0) {
+          for (const v of variants) {
+            await client.query(
+              `INSERT INTO product_variants (product_id, sku, size, color, price, stock)
+             VALUES ($1, $2, $3, $4, $5, $6)`,
+              [id, v.sku, v.size || null, v.color || null, v.price, v.stock]
+            );
+          }
+        }
+      }
 
       // ลบ Tags เดิมออกแล้วผูก Tags ชุดใหม่
       if (tagIds !== undefined) {
